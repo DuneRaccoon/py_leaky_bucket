@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "py-leaky-bucket"
+version = "0.1.0"
+description = "Leaky bucket implementation in python with different persistence options"
+authors = ["duneraccoon <benjamincsherro@hotmail.com>"]
+license = "MIT"
+readme = "README.md"
+keywords = ["rate-limiter", "asyncio", "leaky-bucket", "redis", "sqlite3"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+redis = ">=3.5.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
