@@ -19,11 +19,13 @@ class BaseLeakyBucketStorage(abc.ABC):
     def increment_level(self, amount: float) -> None:
         """Increment the usage level in the storage by amount."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def max_level(self) -> float:
         """Return the maximum capacity for the bucket."""
     
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def rate_per_sec(self) -> float:
         """Return how quickly the bucket drains per second."""
 
