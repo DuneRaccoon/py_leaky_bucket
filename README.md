@@ -39,34 +39,34 @@ pip install leaky-bucket-py
 ```python
 import asyncio
 import redis
-from leakybucket.bucket_async import AsyncLeakyBucket
+from leakybucket.bucket import AsyncLeakyBucket
 from leakybucket.persistence.redis import RedisLeakyBucketStorage
-from leakybucket.decorators_async import async_rate_limit_with_bucket
+from leakybucket.decorators import a_rate_limit
 
 # Connect to Redis
-REDIS_CONNECTION = redis.Redis(host='localhost', port=6379, db=0)
+redis_conn = redis.Redis(host='localhost', port=6379, db=0)
 
 # Create a new Redis storage backend
-STORAGE = RedisLeakyBucketStorage(
-    REDIS_CONNECTION, 
+storage = RedisLeakyBucketStorage(
+    redis_conn, 
     redis_key="api_bucket", 
     max_bucket_rate=5, 
     time_period=5
 )
 
 # Create a new LeakyBucket instance
-BUCKET = AsyncLeakyBucket(STORAGE)
+bucket = AsyncLeakyBucket(storage)
 
 # Make requests using the bucket directly
 async def make_requests():
     for i in range(10): # make some requests
-        async with BUCKET:  # block if the rate limit is exceeded
+        async with bucket:  # block if the rate limit is exceeded
             print(f"Making request {i + 1}")
             await asyncio.sleep(1)
 
 
 # or use a decorator to rate limit a coroutine
-@async_rate_limit_with_bucket(BUCKET)
+@a_rate_limit(bucket)
 async def make_request(index):
     print(f"Making request {index}")
     await asyncio.sleep(1)
@@ -88,8 +88,8 @@ import httpx
 from leakybucket.bucket import LeakyBucket
 from leakybucket.persistence.memory import InMemoryLeakyBucketStorage
 from leakybucket.decorators import (
-    sync_rate_limit, 
-    sync_rate_limit_with_bucket
+    rate_limit,
+    direct_rate_limit, 
 )
 
 # Create a new Memory storage backend (3 requests per second)
@@ -98,8 +98,8 @@ storage = InMemoryLeakyBucketStorage(max_rate=3, time_period=1)
 # Create a new LeakyBucket instance
 throttler = LeakyBucket(storage)
 
-@sync_rate_limit_with_bucket(throttler)
-def fetch_data(api_url):
+@rate_limit(throttler)
+def fetch_data(api_url: str):
     response = httpx.get(api_url)
     data = response.json()
     print(data)
@@ -122,11 +122,11 @@ main()
 ```python
 import asyncio
 import httpx
-from leakybucket.bucket_async import AsyncLeakyBucket
+from leakybucket.bucket import AsyncLeakyBucket
 from leakybucket.persistence.memory import InMemoryLeakyBucketStorage
-from leakybucket.decorators_async import (
-    async_rate_limit, 
-    async_rate_limit_with_bucket
+from leakybucket.decorators import (
+    a_rate_limit,
+    a_direct_rate_limit
 )
 
 # Create a new Memory storage backend (3 requests per second)
@@ -135,7 +135,7 @@ storage = InMemoryLeakyBucketStorage(max_rate=3, time_period=1)
 # Create a new LeakyBucket instance
 async_throttler = AsyncLeakyBucket(storage)
 
-@async_rate_limit_with_bucket(async_throttler)
+@a_rate_limit(async_throttler)
 async def async_fetch_data(api_url):
     async with httpx.AsyncClient() as client:
         response = await client.get(api_url)
@@ -160,7 +160,7 @@ asyncio.run(main())
 
 ```python
 import time
-from leakybucket.decorators import sync_rate_limit_with_bucket
+from leakybucket.decorators import rate_limit
 from leakybucket.bucket import LeakyBucket
 from leakybucket.persistence.sqlite import SqliteLeakyBucketStorage
 
@@ -169,7 +169,7 @@ storage = SqliteLeakyBucketStorage(db_path="leakybucket.db", max_bucket_rate=10,
 bucket = LeakyBucket(storage)
 
 # Decorate the function
-@sync_rate_limit_with_bucket(bucket)
+@rate_limit(bucket)
 def make_request(index):
     print(f"Making request {index}")
     time.sleep(0.5)

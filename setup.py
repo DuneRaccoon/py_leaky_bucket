@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="leaky-bucket-py",
-    version="0.1.1",
+    version="0.1.2",
     description="Leaky bucket implementation in Python with different persistence options",
     author="DuneRaccoon",
     author_email="benjamincsherro@hotmail.com",
