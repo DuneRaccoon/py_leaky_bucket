@@ -13,16 +13,16 @@ class InMemoryLeakyBucketStorage(BaseLeakyBucketStorage):
         self._max_level = max_rate
         self._rate_per_sec = max_rate / time_period
 
-        # Current "bucket" level
+        # current "bucket" level
         self._level = 0.0
         self._last_check = time.time()
 
-        # Hourly limit
+        # hourly limit
         self._max_hourly_level = max_hourly_level
         self._hourly_count = 0.0
-        self._hourly_start = time.time()  # Track when we started the hour
+        self._hourly_start = time.time()
 
-        # Concurrency lock
+        # concurrency lock for thread safety
         self._lock = threading.RLock()
 
     @property
@@ -50,7 +50,6 @@ class InMemoryLeakyBucketStorage(BaseLeakyBucketStorage):
 
     def has_capacity(self, amount: float) -> bool:
         with self._lock:
-            # Check / reset hourly usage
             self._reset_hour_if_needed()
             # If we've exceeded hourly limit, block
             if self._hourly_count >= self._max_hourly_level:

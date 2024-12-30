@@ -1,19 +1,19 @@
-from .bucket import LeakyBucket
-from .decorators import (
-  sync_rate_limit,
-  sync_rate_limit_with_bucket
+from .bucket import (
+    LeakyBucket,
+    AsyncLeakyBucket
 )
-from .bucket_async import AsyncLeakyBucket
-from .decorators_async import (
-  async_rate_limit, 
-  async_rate_limit_with_bucket
+from .decorators import (
+    rate_limit,
+    a_rate_limit,
+    direct_rate_limit,
+    a_direct_rate_limit,
 )
 
 __all__ = [
     "LeakyBucket",
-    "sync_rate_limit",
-    "sync_rate_limit_with_bucket",
     "AsyncLeakyBucket",
-    "async_rate_limit",
-    "async_rate_limit_with_bucket"
+    "rate_limit",
+    "a_rate_limit",
+    "direct_rate_limit",
+    "a_direct_rate_limit",
 ]
