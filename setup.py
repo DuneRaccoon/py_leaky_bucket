@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="py-leaky-bucket",
+    name="leaky-bucket-py",
     version="0.1.0",
     description="Leaky bucket implementation in Python with different persistence options",
     author="DuneRaccoon",
@@ -13,11 +13,16 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11"
     ],
     packages=find_packages(exclude=["tests*", "docs*", "examples*"]),
     install_requires=[
         "redis>=3.5.3",
         "pytest>=6.2.4",
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.7",
 )

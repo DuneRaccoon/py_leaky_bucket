@@ -1,18 +1,24 @@
 [project]
-name = "py-leaky-bucket"
+name = "leaky-bucket-py"
 version = "0.1.0"
 description = "Leaky bucket implementation in python with different persistence options"
 authors = [
     { name = "DuneRaccoon", email = "benjamincsherro@hotmail.com" }
 ]
-license = "MIT"
+license = { file = "LICENSE" }
 readme = "README.md"
 keywords = ["rate-limiter", "asyncio", "leaky-bucket", "redis", "sqlite3"]
 classifiers = [
-  "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License"
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
 ]
 dependencies = [ "redis>=3.5.3" ]
+requires-python = ">=3.7"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]

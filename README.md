@@ -25,7 +25,7 @@ The package includes:
 Easy to install:
 
 ```
-pip install py-leaky-bucket
+pip install leaky-bucket-py
 ```
 
 
