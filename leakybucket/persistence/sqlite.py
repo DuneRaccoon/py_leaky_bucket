@@ -13,8 +13,10 @@ class SqliteLeakyBucketStorage(BaseLeakyBucketStorage):
       last_check REAL,
       hourly_count REAL,
       hourly_start REAL
-    We do a 'BEGIN IMMEDIATE' transaction for concurrency control
+    We make a 'BEGIN IMMEDIATE' transaction for concurrency control
     and retry if locked.
+    
+    ***This isn't a good choice for high-throughput applications.***
     """
 
     def __init__(
@@ -151,7 +153,6 @@ class SqliteLeakyBucketStorage(BaseLeakyBucketStorage):
 
     def has_capacity(self, amount: float) -> bool:
         def _has_capacity(conn, c):
-            # Possibly reset hour
             self._reset_hour_if_needed(conn, c)
 
             # Check hourly_count

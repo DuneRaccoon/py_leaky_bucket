@@ -55,8 +55,7 @@ class InMemoryLeakyBucketStorage(BaseLeakyBucketStorage):
             # If we've exceeded hourly limit, block
             if self._hourly_count >= self._max_hourly_level:
                 return False
-
-            # Leak the bucket
+            
             self._leak()
 
             requested = self._level + amount

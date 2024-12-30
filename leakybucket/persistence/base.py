@@ -1,5 +1,3 @@
-# leakybucket/storages/base.py
-
 import abc
 import asyncio
 from typing import Dict
@@ -21,11 +19,11 @@ class BaseLeakyBucketStorage(abc.ABC):
     def increment_level(self, amount: float) -> None:
         """Increment the usage level in the storage by amount."""
 
-    @property.abstract
+    @abc.abstractproperty
     def max_level(self) -> float:
         """Return the maximum capacity for the bucket."""
-
-    @property.abstract
+    
+    @abc.abstractproperty
     def rate_per_sec(self) -> float:
         """Return how quickly the bucket drains per second."""
 

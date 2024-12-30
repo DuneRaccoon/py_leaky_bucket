@@ -1,4 +1,5 @@
 import time
+from typing import Callable
 import redis
 import math
 from redis.exceptions import WatchError
@@ -34,12 +35,14 @@ class RedisLeakyBucketStorage(BaseLeakyBucketStorage):
 
         # Initialize the keys
         if not self.redis.get(self.key):
-            self.redis.set(self.key, "0.0")
+            self.redis.set(self.key, "0.0") # initial level
+            
         if not self.redis.get(self.hourly_key):
             self.redis.set(self.hourly_key, "0")
-            self.redis.expire(self.hourly_key, 60*60)
+            self.redis.expire(self.hourly_key, 60 * 60)  # 1 hour expiry
+            
         if not self.redis.get(self.last_check_key):
-            self.redis.set(self.last_check_key, str(time.time()))
+            self.redis.set(self.last_check_key, str(time.time())) # initial time
 
     @property
     def max_level(self) -> float:
@@ -49,10 +52,13 @@ class RedisLeakyBucketStorage(BaseLeakyBucketStorage):
     def rate_per_sec(self) -> float:
         return self._rate_per_sec
 
-    def _atomic_check_and_update(self, update_fn):
+    def _atomic_check_and_update(self, update_fn: Callable):
         """
         Helper that uses Redis WATCH / MULTI / EXEC to do an atomic
         read-modify-write cycle. Repeats on WatchError up to _max_retries times.
+        
+        The update_fn should take the args current level, hourly usage, and last check time
+        and return a tuple of new values (new_level, new_hourly_usage, new_last_check).
         """
         for _ in range(self._max_retries):
             try:
@@ -60,7 +66,7 @@ class RedisLeakyBucketStorage(BaseLeakyBucketStorage):
                     # watch relevant keys
                     pipe.watch(self.key, self.hourly_key, self.last_check_key)
 
-                    # read current values
+                    # read current values from redis
                     current_level = float(pipe.get(self.key) or "0")
                     last_check = float(pipe.get(self.last_check_key) or "0")
                     hour_used = float(pipe.get(self.hourly_key) or "0")

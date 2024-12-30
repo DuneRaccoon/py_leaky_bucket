@@ -15,8 +15,7 @@ class LeakyBucket:
             raise ValueError("Cannot acquire more than the bucket capacity")
 
         while not self._storage.has_capacity(amount):
-            # Instead of an async wait, we do a simple sleep 
-            # roughly for the drip interval:
+            # simple sleep roughly for the drip interval:
             time.sleep(1 / self._storage.rate_per_sec * amount)
         self._storage.increment_level(amount)
 
