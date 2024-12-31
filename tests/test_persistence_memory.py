@@ -1,10 +1,14 @@
 import asyncio
 import time
 import pytest
-from leakybucket.bucket_async import AsyncLeakyBucket
+from leakybucket.bucket import AsyncLeakyBucket
 from leakybucket.persistence.memory import InMemoryLeakyBucketStorage
-from leakybucket.decorators import sync_rate_limit, sync_rate_limit_with_bucket
-from leakybucket.decorators_async import async_rate_limit, async_rate_limit_with_bucket
+from leakybucket.decorators import (
+    rate_limit,
+    a_rate_limit,
+    direct_rate_limit,
+    a_direct_rate_limit,
+)
 
 def test_memory_storage():
     storage = InMemoryLeakyBucketStorage(max_rate=5, time_period=5, max_hourly_level=10)
@@ -48,7 +52,7 @@ async def test_async_decorator_memory():
     storage = InMemoryLeakyBucketStorage(max_rate=5, time_period=5)
     bucket = AsyncLeakyBucket(storage)
 
-    @async_rate_limit_with_bucket(bucket)
+    @a_rate_limit(bucket)
     async def make_request(index):
         return f"success {index}"
 

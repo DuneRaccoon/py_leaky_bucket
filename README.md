@@ -48,21 +48,22 @@ redis_conn = redis.Redis(host='localhost', port=6379, db=0)
 
 # Create a new Redis storage backend
 storage = RedisLeakyBucketStorage(
-    redis_conn, 
-    redis_key="api_bucket", 
-    max_bucket_rate=5, 
-    time_period=5
+    redis_conn,
+    redis_key="api_bucket",
+    max_rate=5,
+    time_period=1
 )
 
 # Create a new LeakyBucket instance
 bucket = AsyncLeakyBucket(storage)
 
-# Make requests using the bucket directly
+# Make requests using the bucket as a context manager
 async def make_requests():
-    for i in range(10): # make some requests
+    async def make_request():
         async with bucket:  # block if the rate limit is exceeded
-            print(f"Making request {i + 1}")
+            print("Making request")
             await asyncio.sleep(1)
+    await asyncio.gather(*[make_request() for i in range(10)])
 
 
 # or use a decorator to rate limit a coroutine
@@ -75,6 +76,9 @@ async def make_request(index):
 async def main():
     await make_requests()
     await asyncio.gather(*[make_request(i) for i in range(10)])
+
+
+asyncio.run(main())
 ```
 
 
@@ -165,17 +169,21 @@ from leakybucket.bucket import LeakyBucket
 from leakybucket.persistence.sqlite import SqliteLeakyBucketStorage
 
 # Create a shared SQLite bucket
-storage = SqliteLeakyBucketStorage(db_path="leakybucket.db", max_bucket_rate=10, time_period=10)
-bucket = LeakyBucket(storage)
+bucket = LeakyBucket(
+    SqliteLeakyBucketStorage(
+        db_path="leakybucket.db", 
+        max_rate=10, 
+        time_period=10
+    )
+)
 
 # Decorate the function
 @rate_limit(bucket)
 def make_request(index):
     print(f"Making request {index}")
-    time.sleep(0.5)
 
 def main():
-    for i in range(15):
+    for i in range(35):
         make_request(i)
 
 main()

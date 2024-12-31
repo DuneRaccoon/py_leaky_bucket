@@ -23,36 +23,50 @@ class SqliteLeakyBucketStorage(BaseLeakyBucketStorage):
         self,
         db_path: str,
         bucket_key: str = "default_bucket",
-        max_bucket_rate: float = 20.0,
-        time_period: float = 60.0,
-        max_hourly_level: float = math.inf,
         max_retries: int = 10,
-        retry_sleep: float = 0.01
+        retry_sleep: float = 0.01,
+        auto_cleanup: bool = True,
+        **kwargs
     ):
-        super().__init__()
+        """
+        :param db_path: The path to the SQLite database file.
+        :param bucket_key: The key to use for the bucket.
+        :param max_retries: The maximum number of retries for concurrency conflicts.
+        :param retry_sleep: The sleep time between retries.
+        :param auto_cleanup: If True, will delete the keys on teardown.
+        """
+        super().__init__(**kwargs)
         self.db_path = db_path
         self.bucket_key = bucket_key
-        self._max_level = max_bucket_rate
-        self._rate_per_sec = max_bucket_rate / time_period
-        self._max_hourly_level = max_hourly_level
 
         # concurrency control
         self._lock = threading.RLock()
         self._max_retries = max_retries
         self._retry_sleep = retry_sleep
+        self.auto_cleanup = auto_cleanup
 
-        # init table and row
         self._init_table()
         self._init_bucket()
 
+    def __del__(self):
+        if self.auto_cleanup: self._delete_bucket()
+            
     @property
     def max_level(self) -> float:
         return self._max_level
-
+    
+    @property
+    def max_hourly_level(self) -> float:
+        return self._max_hourly_level
+    
+    @property
+    def max_daily_level(self) -> float:
+        return self._max_daily_level
+        
     @property
     def rate_per_sec(self) -> float:
         return self._rate_per_sec
-
+    
     def _init_table(self):
         with sqlite3.connect(self.db_path) as conn:
             c = conn.cursor()
@@ -86,6 +100,15 @@ class SqliteLeakyBucketStorage(BaseLeakyBucketStorage):
                 )
             conn.commit()
 
+    def _delete_bucket(self):
+        """
+        Delete the row associated with the current bucket_key.
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            c = conn.cursor()
+            c.execute("DELETE FROM buckets WHERE bucket_key = ?", (self.bucket_key,))
+            conn.commit()
+            
     def _transaction(self, callback):
         """
         Helper that runs `callback(conn, cursor)` inside a
@@ -164,7 +187,7 @@ class SqliteLeakyBucketStorage(BaseLeakyBucketStorage):
             if not row:
                 return False
             hour_used = row[0]
-            if hour_used >= self._max_hourly_level:
+            if hour_used >= self.max_hourly_level:
                 return False
 
             # leak
@@ -180,7 +203,7 @@ class SqliteLeakyBucketStorage(BaseLeakyBucketStorage):
                 return False
             current_level = row[0]
             requested = current_level + amount
-            if requested <= self._max_level:
+            if requested <= self.max_level:
                 # If capacity found, we can try to notify waiters outside
                 # but we do not have an async event here. We'll just let the base call do that.
                 return True

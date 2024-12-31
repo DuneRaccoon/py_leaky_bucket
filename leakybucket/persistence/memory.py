@@ -6,29 +6,37 @@ from .base import BaseLeakyBucketStorage
 class InMemoryLeakyBucketStorage(BaseLeakyBucketStorage):
     """
     Thread-safe in-memory storage.
-    Also supports an hourly max limit, resetting each hour.
     """
-    def __init__(self, max_rate: float, time_period: float = 60, max_hourly_level: float = math.inf):
-        super().__init__()
-        self._max_level = max_rate
-        self._rate_per_sec = max_rate / time_period
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         # current "bucket" level
         self._level = 0.0
         self._last_check = time.time()
 
         # hourly limit
-        self._max_hourly_level = max_hourly_level
         self._hourly_count = 0.0
         self._hourly_start = time.time()
+        
+        # # daily limit
+        # self._daily_count = 0.0
+        # self._daily_start = time.time()
 
         # concurrency lock for thread safety
         self._lock = threading.RLock()
-
+        
     @property
     def max_level(self) -> float:
         return self._max_level
-
+    
+    @property
+    def max_hourly_level(self) -> float:
+        return self._max_hourly_level
+    
+    @property
+    def max_daily_level(self) -> float:
+        return self._max_daily_level
+        
     @property
     def rate_per_sec(self) -> float:
         return self._rate_per_sec
@@ -52,13 +60,13 @@ class InMemoryLeakyBucketStorage(BaseLeakyBucketStorage):
         with self._lock:
             self._reset_hour_if_needed()
             # If we've exceeded hourly limit, block
-            if self._hourly_count >= self._max_hourly_level:
+            if self._hourly_count >= self.max_hourly_level:
                 return False
             
             self._leak()
 
             requested = self._level + amount
-            if requested <= self._max_level:
+            if requested <= self.max_level:
                 # Notify waiters if we have capacity
                 self.maybe_notify_waiters()
                 return True

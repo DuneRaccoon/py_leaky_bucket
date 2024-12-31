@@ -4,15 +4,18 @@ import os
 import pytest
 from leakybucket.bucket import LeakyBucket
 from leakybucket.persistence.sqlite import SqliteLeakyBucketStorage
-from leakybucket.decorators import sync_rate_limit, sync_rate_limit_with_bucket
-from leakybucket.decorators_async import async_rate_limit, async_rate_limit_with_bucket
-
+from leakybucket.decorators import (
+    rate_limit,
+    a_rate_limit,
+    direct_rate_limit,
+    a_direct_rate_limit,
+)
 
 def test_sqlite_storage():
     storage = SqliteLeakyBucketStorage(
         db_path="test_bucket.db",
         bucket_key="test",
-        max_bucket_rate=5,
+        max_rate=5,
         time_period=5,
         max_hourly_level=10,
     )
@@ -37,7 +40,7 @@ def test_sqlite_storage():
 
 def test_sync_leaky_bucket_sqlite():
     storage = SqliteLeakyBucketStorage(
-        db_path="test_bucket.db", bucket_key="test", max_bucket_rate=5, time_period=5
+        db_path="test_bucket.db", bucket_key="test", max_rate=5, time_period=5
     )
     bucket = LeakyBucket(storage)
 
@@ -56,11 +59,11 @@ def test_sync_leaky_bucket_sqlite():
 
 def test_sync_decorator_sqlite():
     storage = SqliteLeakyBucketStorage(
-        db_path="test_bucket.db", bucket_key="test", max_bucket_rate=5, time_period=5
+        db_path="test_bucket.db", bucket_key="test", max_rate=5, time_period=5
     )
     bucket = LeakyBucket(storage)
 
-    @sync_rate_limit_with_bucket(bucket)
+    @rate_limit(bucket)
     def make_request(index):
         return f"success {index}"
 

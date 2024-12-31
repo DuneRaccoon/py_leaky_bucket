@@ -1,8 +1,8 @@
 import time
-from typing import Callable
 import redis
-import math
+from typing import Callable
 from redis.exceptions import WatchError
+
 from .base import BaseLeakyBucketStorage
 
 class RedisLeakyBucketStorage(BaseLeakyBucketStorage):
@@ -14,24 +14,28 @@ class RedisLeakyBucketStorage(BaseLeakyBucketStorage):
         self,
         redis_conn: redis.Redis,
         redis_key: str = "default_bucket",
-        max_bucket_rate: float = 20.0,
-        time_period: float = 60.0,
-        max_hourly_level: float = math.inf,
         max_retries: int = 10,
-        retry_sleep: float = 0.01
+        retry_sleep: float = 0.01,
+        auto_cleanup: bool = True,
+        **kwargs
     ):
-        super().__init__()
+        """
+        :param redis_conn: A Redis connection instance.
+        :param redis_key: The base key to use for the bucket.
+        :param max_retries: The maximum number of retries for concurrency conflicts.
+        :param retry_sleep: The sleep time between retries -> default super low since Redis is fast and time matters with rate limiting.
+        :param auto_cleanup: If True, will delete the keys on teardown, if you don't want the same rates to persist with the same key.
+        """
+        super().__init__(**kwargs)
         self.redis = redis_conn
         self.key = f"lb:{redis_key}"
         self.hourly_key = f"{self.key}:hourly"
+        self.daily_key = f"{self.key}:daily" #not implemented
         self.last_check_key = f"{self.key}:last_check"
-
-        self._max_level = max_bucket_rate
-        self._rate_per_sec = max_bucket_rate / time_period
-        self._max_hourly_level = max_hourly_level
 
         self._max_retries = max_retries
         self._retry_sleep = retry_sleep
+        self.auto_cleanup = auto_cleanup
 
         # Initialize the keys
         if not self.redis.get(self.key):
@@ -41,17 +45,39 @@ class RedisLeakyBucketStorage(BaseLeakyBucketStorage):
             self.redis.set(self.hourly_key, "0")
             self.redis.expire(self.hourly_key, 60 * 60)  # 1 hour expiry
             
+        # if not self.redis.get(self.daily_key):
+        #     self.redis.set(self.daily_key, "0")
+        #     self.redis.expire(self.daily_key, 60 * 60 * 24) # 1 day expiry
+            
         if not self.redis.get(self.last_check_key):
             self.redis.set(self.last_check_key, str(time.time())) # initial time
 
+    def __del__(self):
+        if self.auto_cleanup: self.teardown()
+            
+    def teardown(self):
+        """
+        Clean up all keys related to this bucket.
+        """
+        keys_to_delete = [self.key, self.hourly_key, self.last_check_key]
+        self.redis.delete(*keys_to_delete)
+        
     @property
     def max_level(self) -> float:
         return self._max_level
-
+    
+    @property
+    def max_hourly_level(self) -> float:
+        return self._max_hourly_level
+    
+    @property
+    def max_daily_level(self) -> float:
+        return self._max_daily_level
+        
     @property
     def rate_per_sec(self) -> float:
         return self._rate_per_sec
-
+    
     def _atomic_check_and_update(self, update_fn: Callable):
         """
         Helper that uses Redis WATCH / MULTI / EXEC to do an atomic
@@ -99,16 +125,16 @@ class RedisLeakyBucketStorage(BaseLeakyBucketStorage):
         """
         def update_fn(current_level, hour_used, last_check):
             # Hourly check
-            if hour_used >= self._max_hourly_level:
+            if hour_used >= self.max_hourly_level:
                 return None  # signals failure
 
             now = time.time()
             elapsed = now - last_check
-            decrement = elapsed * self._rate_per_sec
+            decrement = elapsed * self.rate_per_sec
             new_level = max(current_level - decrement, 0)
 
             requested = new_level + amount
-            if requested <= self._max_level:
+            if requested <= self.max_level:
                 # capacity is enough, proceed
                 return (new_level, hour_used, now)  # update level, but DO NOT yet increment usage
             else:
@@ -128,7 +154,7 @@ class RedisLeakyBucketStorage(BaseLeakyBucketStorage):
         def update_fn(current_level, hour_used, last_check):
             now = time.time()
             elapsed = now - last_check
-            decrement = elapsed * self._rate_per_sec
+            decrement = elapsed * self.rate_per_sec
             new_level = max(current_level - decrement, 0) + amount
             new_hour_used = hour_used + 1
             return (new_level, new_hour_used, now)
