@@ -155,7 +155,6 @@ asyncio.run(main())
 
 ```python
 import time
-from leakybucket.decorators import rate_limit
 from leakybucket.bucket import LeakyBucket
 from leakybucket.persistence.sqlite import SqliteLeakyBucketStorage
 
