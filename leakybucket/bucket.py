@@ -1,5 +1,7 @@
 import time
 import asyncio
+import functools
+from typing import Callable, Any, Coroutine, Optional
 from .persistence.base import BaseLeakyBucketStorage
 
 _current_task = asyncio.current_task
@@ -25,6 +27,27 @@ class LeakyBucket:
             # simple sleep roughly for the drip interval:
             time.sleep(1 / self._storage.rate_per_sec * amount)
         self._storage.increment_level(amount)
+        
+    def throttle(self, amount: float = 1.0):
+        """
+        Synchronous decorator
+        
+        Usage:
+            ```python
+            bucket = LeakyBucket(storage)
+            
+            @bucket.throttle()
+            def func():
+                print("Hello, world!")
+            ```
+        """
+        def decorator(func: Callable[...]):
+            @functools.wraps(func)
+            def wrapper(*args, **kwargs):
+                self.acquire(amount=amount)
+                return func(*args, **kwargs)
+            return wrapper
+        return decorator
 
     def __enter__(self):
         self.acquire()
@@ -66,6 +89,27 @@ class AsyncLeakyBucket:
             finally:
                 self._storage.remove_waiter(task)
         self._storage.increment_level(amount)
+
+    def throttle(self, amount: float = 1.0):
+        """
+        Asynchronous decorator
+        
+        Usage:
+            ```python
+            bucket = AsyncLeakyBucket(storage)
+            
+            @bucket.throttle()
+            async def func():
+                print("Hello, world!")
+            ```
+        """
+        def decorator(func: Callable[..., Coroutine[Any, Any, Any]]):
+            @functools.wraps(func)
+            async def wrapper(*args, **kwargs):
+                await self.acquire(amount=amount)
+                return await func(*args, **kwargs)
+            return wrapper
+        return decorator
 
     async def __aenter__(self):
         await self.acquire()

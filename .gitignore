@@ -3,5 +3,4 @@
 *.egg-info
 /dist
 *.db
-*/.vscode
 __pycache__
