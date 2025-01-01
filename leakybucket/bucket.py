@@ -41,7 +41,7 @@ class LeakyBucket:
                 print("Hello, world!")
             ```
         """
-        def decorator(func: Callable[...]):
+        def decorator(func: Callable[..., Any]):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 self.acquire(amount=amount)

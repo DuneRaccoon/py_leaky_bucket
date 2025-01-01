@@ -41,7 +41,6 @@ import asyncio
 import redis
 from leakybucket.bucket import AsyncLeakyBucket
 from leakybucket.persistence.redis import RedisLeakyBucketStorage
-from leakybucket.decorators import a_rate_limit
 
 # Connect to Redis
 redis_conn = redis.Redis(host='localhost', port=6379, db=0)
@@ -67,7 +66,7 @@ async def make_requests():
 
 
 # or use a decorator to rate limit a coroutine
-@a_rate_limit(bucket)
+@bucket.throttle()
 async def make_request(index):
     print(f"Making request {index}")
     await asyncio.sleep(1)
@@ -91,10 +90,6 @@ asyncio.run(main())
 import httpx
 from leakybucket.bucket import LeakyBucket
 from leakybucket.persistence.memory import InMemoryLeakyBucketStorage
-from leakybucket.decorators import (
-    rate_limit,
-    direct_rate_limit, 
-)
 
 # Create a new Memory storage backend (3 requests per second)
 storage = InMemoryLeakyBucketStorage(max_rate=3, time_period=1)
@@ -102,7 +97,7 @@ storage = InMemoryLeakyBucketStorage(max_rate=3, time_period=1)
 # Create a new LeakyBucket instance
 throttler = LeakyBucket(storage)
 
-@rate_limit(throttler)
+@throttler.throttle()
 def fetch_data(api_url: str):
     response = httpx.get(api_url)
     data = response.json()
@@ -128,10 +123,6 @@ import asyncio
 import httpx
 from leakybucket.bucket import AsyncLeakyBucket
 from leakybucket.persistence.memory import InMemoryLeakyBucketStorage
-from leakybucket.decorators import (
-    a_rate_limit,
-    a_direct_rate_limit
-)
 
 # Create a new Memory storage backend (3 requests per second)
 storage = InMemoryLeakyBucketStorage(max_rate=3, time_period=1)
@@ -139,7 +130,7 @@ storage = InMemoryLeakyBucketStorage(max_rate=3, time_period=1)
 # Create a new LeakyBucket instance
 async_throttler = AsyncLeakyBucket(storage)
 
-@a_rate_limit(async_throttler)
+@async_throttler.throttle()
 async def async_fetch_data(api_url):
     async with httpx.AsyncClient() as client:
         response = await client.get(api_url)
@@ -178,7 +169,7 @@ bucket = LeakyBucket(
 )
 
 # Decorate the function
-@rate_limit(bucket)
+@bucket.throttle()
 def make_request(index):
     print(f"Making request {index}")
 
