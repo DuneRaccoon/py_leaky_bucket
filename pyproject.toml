@@ -1,6 +1,6 @@
 [project]
 name = "leaky-bucket-py"
-version = "0.1.2"
+version = "0.1.3"
 description = "Leaky bucket implementation in python with different persistence options"
 authors = [
     { name = "DuneRaccoon", email = "benjamincsherro@hotmail.com" }
